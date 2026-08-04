@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Toni Agost — Waitlist Booking</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;800&family=Newsreader:ital@1&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#EAE7DF;
+    --panel:#F3F1EA;
+    --ink:#17161A;
+    --muted:#8B8579;
+    --line:#CBC6B9;
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0;
+    background-color:var(--paper);
+    background-image:
+      radial-gradient(rgba(23,22,26,0.035) 0.6px, transparent 0.6px);
+    background-size: 5px 5px;
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+  }
+  .page{
+    max-width:840px;
+    margin:0 auto;
+    padding:56px 28px 120px;
+  }
+
+  /* top bar, like "00.0  CONTENTS" */
+  .topbar{
+    display:flex;
+    align-items:baseline;
+    gap:16px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    letter-spacing:0.08em;
+    color:var(--ink);
+    text-transform:uppercase;
+    padding-bottom:120px;
+  }
+  .topbar .dim{ color:var(--muted); }
+
+  /* hero */
+  .hero{ padding-bottom:56px; }
+  h1{
+    font-family:'Inter',sans-serif;
+    font-weight:800;
+    font-size:clamp(38px, 6.4vw, 58px);
+    line-height:0.98;
+    letter-spacing:-0.01em;
+    margin:0 0 22px;
+    max-width:640px;
+  }
+  .accent{
+    font-family:'Newsreader',serif;
+    font-style:italic;
+    font-weight:400;
+    font-size:19px;
+    color:var(--ink);
+    max-width:520px;
+    margin:0 0 18px;
+    line-height:1.5;
+  }
+  .lede{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12.5px;
+    line-height:1.7;
+    color:var(--muted);
+    max-width:520px;
+  }
+  .notice{
+    margin-top:26px;
+    padding:16px 18px;
+    border:1px solid var(--line);
+    background:var(--panel);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11.5px;
+    line-height:1.7;
+    color:var(--ink);
+    max-width:640px;
+  }
+  .notice b{ font-weight:500; }
+
+  /* chapters */
+  .chapter{ margin-top:64px; }
+  .chapter-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    border-bottom:1px solid var(--ink);
+    padding-bottom:12px;
+    margin-bottom:6px;
+  }
+  .chapter-num{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px;
+    color:var(--muted);
+    margin-right:14px;
+  }
+  .chapter-title{
+    font-family:'Inter',sans-serif;
+    font-weight:800;
+    font-size:15px;
+    letter-spacing:0.04em;
+    text-transform:uppercase;
+    flex:1;
+  }
+  .chapter-count{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    color:var(--muted);
+  }
+
+  .field-row{
+    display:grid;
+    grid-template-columns:92px 1fr;
+    gap:22px;
+    padding:24px 0;
+    border-bottom:1px dashed var(--line);
+    align-items:start;
+  }
+  .field-row:last-child{ border-bottom:none; }
+  .field-index{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12.5px;
+    color:var(--muted);
+    padding-top:3px;
+  }
+  .field-body label.title{
+    display:block;
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:14px;
+    margin-bottom:12px;
+    letter-spacing:0.01em;
+  }
+  .field-body label.title .req{
+    font-family:'IBM Plex Mono',monospace;
+    color:var(--muted);
+    font-weight:400;
+    font-size:11px;
+    text-transform:uppercase;
+    margin-left:8px;
+  }
+  .hint{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11.5px;
+    color:var(--muted);
+    margin-top:-6px;
+    margin-bottom:12px;
+    line-height:1.6;
+  }
+
+  @media (max-width:560px){
+    .field-row{ grid-template-columns:56px 1fr; gap:14px; }
+  }
+
+  /* inputs: underline style */
+  input[type=text], input[type=email], input[type=tel], input[type=number]{
+    width:100%;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:14px;
+    padding:8px 2px;
+    background:transparent;
+    border:none;
+    border-bottom:1px solid var(--line);
+    color:var(--ink);
+    outline:none;
+    transition:border-color .15s ease;
+  }
+  input::placeholder, textarea::placeholder{ color:#B4AE9E; }
+  input:focus, textarea:focus, select:focus{ border-color:var(--ink); }
+
+  select{
+    width:100%;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:14px;
+    padding:8px 2px;
+    background:transparent;
+    border:none;
+    border-bottom:1px solid var(--line);
+    color:var(--ink);
+    outline:none;
+    appearance:none;
+    -webkit-appearance:none;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0 L5 6 L10 0' stroke='%238B8579' fill='none'/></svg>");
+    background-repeat:no-repeat;
+    background-position:right 4px center;
+  }
+
+  textarea{
+    width:100%;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:14px;
+    line-height:1.6;
+    padding:12px;
+    background:var(--panel);
+    border:1px solid var(--line);
+    color:var(--ink);
+    outline:none;
+    resize:vertical;
+    min-height:90px;
+    transition:border-color .15s ease;
+  }
+
+  .row2{ display:grid; grid-template-columns:1fr 1fr; gap:24px; }
+  .row3{ display:grid; grid-template-columns:1.3fr 1fr 1fr; gap:24px; }
+  @media (max-width:560px){ .row2, .row3{ grid-template-columns:1fr; gap:16px; } }
+  .stack{ display:flex; flex-direction:column; gap:16px; }
+
+  .budget-tag{
+    display:inline-block;
+    font-family:'Newsreader',serif;
+    font-style:italic;
+    font-size:14px;
+    color:var(--muted);
+    margin-bottom:10px;
+  }
+
+  /* file */
+  .filebox{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    border:1px dashed var(--line);
+    padding:16px 14px;
+    cursor:pointer;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11.5px;
+    text-transform:uppercase;
+    letter-spacing:0.04em;
+    color:var(--muted);
+    background:var(--panel);
+  }
+  .filebox.has-file{ border-style:solid; color:var(--ink); }
+  .filebox input{ display:none; }
+  .filebox .browse{ color:var(--ink); text-decoration:underline; text-underline-offset:3px; white-space:nowrap; }
+
+  /* consent */
+  .consent-row{
+    border-top:1px solid var(--ink);
+    margin-top:56px;
+    padding-top:22px;
+    display:flex;
+    gap:14px;
+    align-items:flex-start;
+  }
+  .consent-row input{
+    margin-top:4px;
+    width:14px; height:14px;
+    accent-color:var(--ink);
+  }
+  .consent-row p{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    line-height:1.8;
+    color:var(--muted);
+    margin:0;
+  }
+
+  /* submit — text-as-button, like "PROCEED TO CHECKOUT" */
+  .submit-row{
+    margin-top:36px;
+    border-top:1px solid var(--line);
+    padding-top:20px;
+  }
+  button[type=submit]{
+    width:100%;
+    background:none;
+    border:none;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--ink);
+    padding:14px 0;
+    cursor:pointer;
+    transition:opacity .15s ease, letter-spacing .15s ease;
+  }
+  button[type=submit]:hover{ opacity:0.6; letter-spacing:0.12em; }
+  .status{
+    display:none;
+    margin-top:14px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11.5px;
+    color:var(--muted);
+  }
+  .status.show{ display:block; }
+
+  /* footer, like earthe.so contact rows */
+  footer{
+    margin-top:90px;
+    border-top:1px solid var(--line);
+  }
+  .foot-row{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px 28px;
+    padding:16px 0;
+    border-bottom:1px solid var(--line);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.04em;
+    color:var(--muted);
+  }
+  .foot-row span{ white-space:nowrap; }
+  .foot-contact{
+    padding-top:18px;
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px 32px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    color:var(--ink);
+  }
+  .foot-contact b{ color:var(--muted); font-weight:400; margin-right:8px; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="topbar">
+    <span>00.0</span>
+    <span class="dim">/</span>
+    <span>Intake — Booking Form</span>
+  </div>
+
+  <div class="hero">
+    <h1>Book with<br>Toni&nbsp;Agost</h1>
+    <p class="accent">Currently taking the waitlist for Reykjavík, London, Berlin, and Paris.</p>
+    <p class="lede">Dates aren't confirmed yet — you'll hear from us once bookings open for your city. Looking to buy a design and have it done by your local artist instead? Ask us for the link.</p>
+    <div class="notice">
+      <b>Please note —</b> this form does not guarantee an appointment. Once your city opens, we'll email a date, estimated price, and deposit instructions. You'll have 24 hours to respond before the spot moves to the next person on the list.
+    </div>
+  </div>
+
+  <form id="bookingForm" action="https://formsubmit.co/bookings@toniagost.com" method="POST" enctype="multipart/form-data">
+    <input type="hidden" name="_subject" value="New waitlist booking request — Toni Agost">
+    <input type="hidden" name="_template" value="table">
+    <input type="hidden" name="_captcha" value="false">
+    <input type="text" name="_honey" style="display:none">
+    <input type="hidden" name="_autoresponse" value="Thank you for requesting an appointment with me! <3 I will get back to you in the next few days with a booking confirmation and further information about your appointment.
+
+If you are requesting an appointment in less than 48hs please send me a dm on Instagram (@toniagost).
+
+Can't wait to meet you !!
+
+Love,
+Toni.">
+
+    <!-- CHAPTER 01 -->
+    <div class="chapter">
+      <div class="chapter-head">
+        <div style="display:flex;align-items:baseline;">
+          <span class="chapter-num">01</span>
+          <span class="chapter-title">About you</span>
+        </div>
+        <span class="chapter-count">01.1 — 01.8</span>
+      </div>
+
+      <div class="field-row">
+        <div class="field-index">01.1 /</div>
+        <div class="field-body">
+          <label class="title">City<span class="req">required</span></label>
+          <select name="City" required>
+            <option value="">Select a city…</option>
+            <option>Reykjavík</option>
+            <option>London</option>
+            <option>Berlin</option>
+            <option>Paris</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field-index">01.2 /</div>
+        <div class="field-body">
+          <label class="title">Name<span class="req">required</span></label>
+          <div class="row2">
+            <input type="text" name="First Name" placeholder="First name" required>
+            <input type="text" name="Last Name" placeholder="Last name" required>
+          </div>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field-index">01.3 /</div>
+        <div class="field-body">
+          <label class="title">Pronouns<span class="req">required</span></label>
+          <input type="text" name="Pronouns" placeholder="she/her, he/him, they/them…">
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field-index">01.4 /</div>
+        <div class="field-body">
+          <label class="title">Age<span class="req">required</span></label>
+          <input type="number" name="Age" min="16" max="120" style="max-width:140px" required>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field-index">01.5 /</div>
+        <div class="field-body">
+          <label class="title">Address<span class="req">required</span></label>
+          <div class="stack">
+            <input type="text" name="Street Address" placeholder="Street address" required>
+            <input type="text" name="Street Address Line 2" placeholder="Apt, suite, etc. (optional)">
+            <div class="row3">
+              <input type="text" name="City (Address)" placeholder="City" required>
+              <input type="text" name="State / Province" placeholder="State / Province">
+              <input type="text" name="Postal Code" placeholder="Postal / ZIP code" required>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field-index">01.6 /</div>
+        <div class="field-body">
+          <label class="title">Phone number<span class="req">required</span></label>
+          <div class="row2">
+            <input type="text" name="Area Code" placeholder="Area / country code" required>
+            <input type="tel" name="Phone Number" placeholder="Phone number" required>
+          </div>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field-index">01.7 /</div>
+        <div class="field-body">
+          <label class="title">Email<span class="req">required</span></label>
+          <input type="email" name="Email" placeholder="example@example.com" required>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field-index">01.8 /</div>
+        <div class="field-body">
+          <label class="title">Instagram<span class="req">required</span></label>
+          <input type="text" name="Instagram" placeholder="@yourhandle" required>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHAPTER 02 -->
+    <div class="chapter">
+      <div class="chapter-head">
+        <div style="display:flex;align-items:baseline;">
+          <span class="chapter-num">02</span>
+          <span class="chapter-title">The tattoo</span>
+        </div>
+        <span class="chapter-count">02.1 — 02.3</span>
+      </div>
+
+      <div class="field-row">
+        <div class="field-index">02.1 /</div>
+        <div class="field-body">
+          <label class="title">How many tattoos would you like to get at the appointment?<span class="req">required</span></label>
+          <input type="text" name="Tattoo Count" placeholder="e.g. 1, 2, a small set…" required>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field-index">02.2 /</div>
+        <div class="field-body">
+          <label class="title">What would you like to get?<span class="req">required</span></label>
+          <div class="hint">Design, placement, size, and color.</div>
+          <textarea name="Tattoo Idea" required></textarea>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field-index">02.3 /</div>
+        <div class="field-body">
+          <label class="title">Attach your design or inspiration<span class="req">required</span></label>
+          <label class="filebox" id="fileboxLabel">
+            <span id="fileboxText">Drag a file, or browse</span>
+            <span class="browse">Choose file</span>
+            <input type="file" name="attachment" id="fileInput" required>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHAPTER 03 -->
+    <div class="chapter">
+      <div class="chapter-head">
+        <div style="display:flex;align-items:baseline;">
+          <span class="chapter-num">03</span>
+          <span class="chapter-title">The appointment</span>
+        </div>
+        <span class="chapter-count">03.1 — 03.3</span>
+      </div>
+
+      <div class="field-row">
+        <div class="field-index">03.1 /</div>
+        <div class="field-body">
+          <label class="title">If you'd like to book, for which month?<span class="req">required</span></label>
+          <select name="Preferred Month" required>
+            <option value="">Select a month…</option>
+            <option>January</option><option>February</option><option>March</option>
+            <option>April</option><option>May</option><option>June</option>
+            <option>July</option><option>August</option><option>September</option>
+            <option>October</option><option>November</option><option>December</option>
+            <option>Flexible / not sure yet</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field-index">03.2 /</div>
+        <div class="field-body">
+          <label class="title">Your budget<span class="req">required</span></label>
+          <span class="budget-tag">appointments start at €250</span>
+          <input type="text" name="Budget" placeholder="e.g. €250–400" required>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field-index">03.3 /</div>
+        <div class="field-body">
+          <label class="title">What days/times would work best?<span class="req">required</span></label>
+          <textarea name="Availability" style="min-height:64px" required></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHAPTER 04 -->
+    <div class="chapter">
+      <div class="chapter-head">
+        <div style="display:flex;align-items:baseline;">
+          <span class="chapter-num">04</span>
+          <span class="chapter-title">Consent</span>
+        </div>
+        <span class="chapter-count">04.1</span>
+      </div>
+
+      <div class="consent-row">
+        <input type="checkbox" required id="consentBox">
+        <p>
+          I understand this form does not guarantee an appointment. I'll be contacted via email for follow-up, and will be required to send a non-refundable deposit via PayPal within 24 hours of agreeing to a time — until then, my appointment isn't confirmed. If I need to cancel or reschedule, I'll do so at least 48 hours ahead to avoid losing my deposit. I understand that changes to my design after booking may change the quoted price.
+        </p>
+      </div>
+    </div>
+
+    <div class="submit-row">
+      <button type="submit">
+        <span>Submit to waitlist</span>
+        <span>→</span>
+      </button>
+      <div class="status" id="statusBox">Sending your request to the studio…</div>
+    </div>
+  </form>
+
+  <footer>
+    <div class="foot-row">
+      <span>Fine line</span><span>Illustrative</span><span>Blackwork</span><span>Custom pieces</span>
+    </div>
+    <div class="foot-row" style="border-bottom:none;">
+      <span>Reykjavík</span><span>London</span><span>Berlin</span><span>Paris</span>
+    </div>
+    <div class="foot-contact">
+      <span><b>(e).</b>bookings@toniagost.com</span>
+      <span><b>(ig).</b>@toniagost</span>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+  const fileInput = document.getElementById('fileInput');
+  const fileboxText = document.getElementById('fileboxText');
+  const fileboxLabel = document.getElementById('fileboxLabel');
+  fileInput.addEventListener('change', () => {
+    if(fileInput.files.length){
+      fileboxText.textContent = fileInput.files[0].name;
+      fileboxLabel.classList.add('has-file');
+    }
+  });
+
+  const form = document.getElementById('bookingForm');
+  const statusBox = document.getElementById('statusBox');
+  form.addEventListener('submit', () => {
+    statusBox.classList.add('show');
+  });
+</script>
+
+</body>
+</html>
