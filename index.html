@@ -486,10 +486,11 @@ Toni.">
         <div class="field-index">02.3 /</div>
         <div class="field-body">
           <label class="title">Attach your design or inspiration<span class="req">required</span></label>
+          <div class="hint">You can attach more than one file.</div>
           <label class="filebox" id="fileboxLabel">
-            <span id="fileboxText">Drag a file, or browse</span>
-            <span class="browse">Choose file</span>
-            <input type="file" name="attachment" id="fileInput" required>
+            <span id="fileboxText">Drag files, or browse</span>
+            <span class="browse">Choose files</span>
+            <input type="file" name="attachment" id="fileInput" multiple required>
           </label>
         </div>
       </div>
@@ -586,7 +587,8 @@ Toni.">
   const fileboxLabel = document.getElementById('fileboxLabel');
   fileInput.addEventListener('change', () => {
     if(fileInput.files.length){
-      fileboxText.textContent = fileInput.files[0].name;
+      const n = fileInput.files.length;
+      fileboxText.textContent = n === 1 ? fileInput.files[0].name : n + ' files selected';
       fileboxLabel.classList.add('has-file');
     }
   });
@@ -610,20 +612,22 @@ Toni.">
     e.preventDefault();
     statusBox.classList.add('show');
 
-    let attachmentPath = '';
-    let attachmentName = '';
+    let attachmentPaths = [];
+    let attachmentNames = [];
 
     if(fileInput.files.length){
-      try{
-        const file = fileInput.files[0];
-        attachmentName = file.name;
-        const safeName = Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
-        attachmentPath = 'attachments/' + safeName;
-        const ref = storage.ref().child(attachmentPath);
-        await ref.put(file);
-      } catch(err){
-        console.error('Could not upload attachment', err);
-        // Continue anyway — the request itself should still save
+      for(const file of fileInput.files){
+        try{
+          const safeName = Date.now() + '_' + Math.random().toString(36).slice(2,7) + '_' + file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+          const path = 'attachments/' + safeName;
+          const ref = storage.ref().child(path);
+          await ref.put(file);
+          attachmentPaths.push(path);
+          attachmentNames.push(file.name);
+        } catch(err){
+          console.error('Could not upload attachment', file.name, err);
+          // Continue with the rest — the request itself should still save
+        }
       }
     }
 
@@ -649,8 +653,8 @@ Toni.">
         month: form['Preferred Month'].value,
         budget: form['Budget'].value,
         availability: form['Availability'].value,
-        attachmentPath: attachmentPath,
-        attachmentName: attachmentName,
+        attachmentPaths: attachmentPaths,
+        attachmentNames: attachmentNames,
         notes: '',
         status: 'New',
         source: 'waitlist form',
@@ -660,6 +664,9 @@ Toni.">
       console.error('Could not save to tracker', err);
       // Don't block the email flow even if this fails
     }
+
+    // Give each email a unique subject so Gmail doesn't thread them together
+    form['_subject'].value = 'New waitlist request — ' + form['First Name'].value + ' ' + form['Last Name'].value;
 
     form.submit();
   });
