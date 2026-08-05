@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Toni Agost — Waitlist Booking</title>
+<script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-storage-compat.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;800&family=Newsreader:ital@1&display=swap" rel="stylesheet">
 <style>
@@ -588,10 +591,77 @@ Toni.">
     }
   });
 
+  const firebaseConfig = {
+    apiKey: "AIzaSyAGwKqASaB7-ryHpbjXMYANnpqP_KC7bC8",
+    authDomain: "toniagost-app.firebaseapp.com",
+    projectId: "toniagost-app",
+    storageBucket: "toniagost-app.firebasestorage.app",
+    messagingSenderId: "62278378303",
+    appId: "1:62278378303:web:ada753e0d88d2be3f2a98a"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+  const storage = firebase.storage();
+
   const form = document.getElementById('bookingForm');
   const statusBox = document.getElementById('statusBox');
-  form.addEventListener('submit', () => {
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
     statusBox.classList.add('show');
+
+    let attachmentPath = '';
+    let attachmentName = '';
+
+    if(fileInput.files.length){
+      try{
+        const file = fileInput.files[0];
+        attachmentName = file.name;
+        const safeName = Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+        attachmentPath = 'attachments/' + safeName;
+        const ref = storage.ref().child(attachmentPath);
+        await ref.put(file);
+      } catch(err){
+        console.error('Could not upload attachment', err);
+        // Continue anyway — the request itself should still save
+      }
+    }
+
+    try{
+      await db.collection('requests').add({
+        first: form['First Name'].value,
+        last: form['Last Name'].value,
+        city: form['City'].value,
+        pronouns: form['Pronouns'].value,
+        age: form['Age'].value,
+        address: [
+          form['Street Address'].value,
+          form['Street Address Line 2'].value,
+          form['City (Address)'].value,
+          form['State / Province'].value,
+          form['Postal Code'].value
+        ].filter(Boolean).join(', '),
+        phone: [form['Area Code'].value, form['Phone Number'].value].filter(Boolean).join(' '),
+        email: form['Email'].value,
+        instagram: form['Instagram'].value,
+        tattooCount: form['Tattoo Count'].value,
+        idea: form['Tattoo Idea'].value,
+        month: form['Preferred Month'].value,
+        budget: form['Budget'].value,
+        availability: form['Availability'].value,
+        attachmentPath: attachmentPath,
+        attachmentName: attachmentName,
+        notes: '',
+        status: 'New',
+        source: 'waitlist form',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    } catch(err){
+      console.error('Could not save to tracker', err);
+      // Don't block the email flow even if this fails
+    }
+
+    form.submit();
   });
 </script>
 
