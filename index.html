@@ -241,6 +241,21 @@
     background:var(--panel);
   }
   .filebox.has-file{ border-style:solid; color:var(--ink); }
+  .add-another-file{
+    margin-top:10px; background:none; border:none; cursor:pointer;
+    font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--ink);
+    text-decoration:underline; text-underline-offset:3px; padding:0;
+  }
+  .extra-file-row{
+    display:flex; align-items:center; justify-content:space-between;
+    font-family:'IBM Plex Mono',monospace; font-size:12.5px; color:var(--ink);
+    padding:8px 10px; border:1px solid var(--line); background:var(--panel);
+    margin-bottom:6px;
+  }
+  .extra-file-remove{
+    background:none; border:none; cursor:pointer; color:var(--muted);
+    font-family:'IBM Plex Mono',monospace; font-size:13px; padding:0 0 0 10px;
+  }
   .filebox input{ display:none; }
   .filebox .browse{ color:var(--ink); text-decoration:underline; text-underline-offset:3px; white-space:nowrap; }
 
@@ -486,12 +501,13 @@ Toni.">
         <div class="field-index">02.3 /</div>
         <div class="field-body">
           <label class="title">Attach your design or inspiration<span class="req">required</span></label>
-          <div class="hint">You can attach more than one file.</div>
           <label class="filebox" id="fileboxLabel">
-            <span id="fileboxText">Drag files, or browse</span>
-            <span class="browse">Choose files</span>
-            <input type="file" name="attachment" id="fileInput" multiple required>
+            <span id="fileboxText">Drag a file, or browse</span>
+            <span class="browse">Choose file</span>
+            <input type="file" name="attachment" id="fileInput" required>
           </label>
+          <div id="extraFilesList" style="margin-top:10px;"></div>
+          <button type="button" id="addAnotherFileBtn" class="add-another-file">+ Add another file</button>
         </div>
       </div>
     </div>
@@ -587,10 +603,38 @@ Toni.">
   const fileboxLabel = document.getElementById('fileboxLabel');
   fileInput.addEventListener('change', () => {
     if(fileInput.files.length){
-      const n = fileInput.files.length;
-      fileboxText.textContent = n === 1 ? fileInput.files[0].name : n + ' files selected';
+      fileboxText.textContent = fileInput.files[0].name;
       fileboxLabel.classList.add('has-file');
     }
+  });
+
+  // Extra files, kept separate from the main input so email attachment stays reliable
+  let extraFiles = [];
+  const extraFilesList = document.getElementById('extraFilesList');
+  function renderExtraFiles(){
+    extraFilesList.innerHTML = extraFiles.map((f, i) => `
+      <div class="extra-file-row">
+        <span>${f.name}</span>
+        <button type="button" class="extra-file-remove" data-i="${i}">✕</button>
+      </div>
+    `).join('');
+    extraFilesList.querySelectorAll('.extra-file-remove').forEach(btn => {
+      btn.addEventListener('click', () => {
+        extraFiles.splice(Number(btn.dataset.i), 1);
+        renderExtraFiles();
+      });
+    });
+  }
+  document.getElementById('addAnotherFileBtn').addEventListener('click', () => {
+    const temp = document.createElement('input');
+    temp.type = 'file';
+    temp.addEventListener('change', () => {
+      if(temp.files.length){
+        extraFiles.push(temp.files[0]);
+        renderExtraFiles();
+      }
+    });
+    temp.click();
   });
 
   const firebaseConfig = {
@@ -614,20 +658,19 @@ Toni.">
 
     let attachmentPaths = [];
     let attachmentNames = [];
+    const allFiles = fileInput.files.length ? [fileInput.files[0], ...extraFiles] : extraFiles;
 
-    if(fileInput.files.length){
-      for(const file of fileInput.files){
-        try{
-          const safeName = Date.now() + '_' + Math.random().toString(36).slice(2,7) + '_' + file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
-          const path = 'attachments/' + safeName;
-          const ref = storage.ref().child(path);
-          await ref.put(file);
-          attachmentPaths.push(path);
-          attachmentNames.push(file.name);
-        } catch(err){
-          console.error('Could not upload attachment', file.name, err);
-          // Continue with the rest — the request itself should still save
-        }
+    for(const file of allFiles){
+      try{
+        const safeName = Date.now() + '_' + Math.random().toString(36).slice(2,7) + '_' + file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+        const path = 'attachments/' + safeName;
+        const ref = storage.ref().child(path);
+        await ref.put(file);
+        attachmentPaths.push(path);
+        attachmentNames.push(file.name);
+      } catch(err){
+        console.error('Could not upload attachment', file.name, err);
+        // Continue with the rest — the request itself should still save
       }
     }
 
