@@ -663,7 +663,7 @@ Toni.">
     for(const file of allFiles){
       try{
         const safeName = Date.now() + '_' + Math.random().toString(36).slice(2,7) + '_' + file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
-        const path = 'attachments/' + safeName;
+        const path = 'attachments/bookings@toniagost.com/' + safeName;
         const ref = storage.ref().child(path);
         await ref.put(file);
         attachmentPaths.push(path);
@@ -701,6 +701,7 @@ Toni.">
         notes: '',
         status: 'New',
         source: 'waitlist form',
+        owner: 'bookings@toniagost.com',
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
     } catch(err){
