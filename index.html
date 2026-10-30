@@ -593,7 +593,6 @@ Toni.">
     </div>
   </form>
 
-  <iframe name="formsubmit_frame" id="formsubmit_frame" title="" aria-hidden="true" tabindex="-1" style="display:none; width:0; height:0; border:0;"></iframe>
 
   <div id="thanks" style="display:none; padding:56px 0 20px; border-top:1px solid var(--ink); margin-top:24px;">
     <div style="font-size:12px; letter-spacing:0.06em; text-transform:uppercase; color:var(--muted); margin-bottom:18px;">Request received</div>
@@ -672,8 +671,6 @@ Toni.">
   const form = document.getElementById('bookingForm');
   const statusBox = document.getElementById('statusBox');
 
-  // The email goes out through a hidden frame, so a FormSubmit outage never reaches the visitor.
-  // The tracker save is the source of truth; the email is a bonus.
   function showThanks(savedToTracker){
     form.style.display = 'none';
     document.querySelectorAll('.hero, .eyebrow, .intro, .lede, .page > h1, .page > .sub').forEach(el => { el.style.display = 'none'; });
@@ -682,14 +679,90 @@ Toni.">
     thanks.style.display = 'block';
     window.scrollTo({ top: Math.max(0, thanks.getBoundingClientRect().top + window.scrollY - 60), behavior: 'smooth' });
   }
-  function finishSubmission(savedToTracker){
-    const frame = document.getElementById('formsubmit_frame');
-    let done = false;
-    const finish = () => { if(done) return; done = true; showThanks(savedToTracker); };
-    frame.addEventListener('load', finish, { once: true });
-    setTimeout(finish, 12000);
-    form.target = 'formsubmit_frame';
-    form.submit();
+// ---- Email notification (Google Apps Script relay) ----
+  // The tracker save is the source of truth; this email is the notification.
+  // Until the web app URL below is filled in, no email is sent (the tracker still gets everything).
+  const RELAY_URL = 'https://script.google.com/macros/s/AKfycbxA4q8c8sz8Wcfld_e31-vyn-IjVC4kS4hwSzAPQBJ_JNkEaVnE_LQUzKFMoZgZZOvQgg/exec';
+  const RELAY_TOKEN = 'DOysL_R95D0smiR3_lQC7SLu';
+  const RELAY_OWNER = 'toni';
+  const MAX_EMAIL_BYTES = 12 * 1024 * 1024;
+
+  function readAsBase64(blob){
+    return new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(String(r.result).split(',')[1]);
+      r.onerror = reject;
+      r.readAsDataURL(blob);
+    });
+  }
+
+  // Phone photos are big; shrink them for the email (the originals stay in the tracker).
+  async function prepareAttachment(file){
+    try{
+      if(file.type && file.type.indexOf('image/') === 0 && file.type !== 'image/gif' && file.type !== 'image/svg+xml'){
+        const url = URL.createObjectURL(file);
+        const img = await new Promise((resolve, reject) => { const i = new Image(); i.onload = () => resolve(i); i.onerror = reject; i.src = url; });
+        URL.revokeObjectURL(url);
+        const scale = Math.min(1, 1800 / Math.max(img.naturalWidth, img.naturalHeight));
+        if(scale < 1 || file.size > 1.5 * 1024 * 1024){
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.round(img.naturalWidth * scale);
+          canvas.height = Math.round(img.naturalHeight * scale);
+          canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+          const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.85));
+          if(blob && blob.size < file.size){
+            return { name: file.name.replace(/\.[^.]+$/, '') + '.jpg', type: 'image/jpeg', data: await readAsBase64(blob), size: blob.size };
+          }
+        }
+      }
+    } catch(err){ /* fall back to the original file */ }
+    return { name: file.name, type: file.type || 'application/octet-stream', data: await readAsBase64(file), size: file.size };
+  }
+
+  function collectFields(){
+    const out = [];
+    const index = {};
+    new FormData(form).forEach((value, key) => {
+      if(key.charAt(0) === '_' || typeof value !== 'string') return;
+      const v = value.trim();
+      if(!v) return;
+      if(index[key] !== undefined){ out[index[key]][1] += ', ' + v; }
+      else { index[key] = out.length; out.push([key, v]); }
+    });
+    return out;
+  }
+
+  async function sendNotification(files){
+    if(!RELAY_URL || RELAY_URL.indexOf('PASTE_') === 0) return;
+    try{
+      const prepared = [];
+      const skipped = [];
+      let total = 0;
+      for(const file of files){
+        const att = await prepareAttachment(file);
+        if(total + att.size > MAX_EMAIL_BYTES){ skipped.push(file.name); continue; }
+        total += att.size;
+        prepared.push({ name: att.name, type: att.type, data: att.data });
+      }
+      const payload = {
+        token: RELAY_TOKEN,
+        owner: RELAY_OWNER,
+        subject: form['_subject'].value,
+        replyTo: form['Email'] ? form['Email'].value : '',
+        honey: form['_honey'] ? form['_honey'].value : '',
+        fields: collectFields(),
+        files: prepared,
+        skipped: skipped
+      };
+      await fetch(RELAY_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+      });
+    } catch(err){
+      console.error('Notification email could not be sent', err);
+    }
   }
 
   form.addEventListener('submit', async (e) => {
@@ -755,7 +828,11 @@ Toni.">
     // Give each email a unique subject so Gmail doesn't thread them together
     form['_subject'].value = 'New waitlist request — ' + form['First Name'].value + ' ' + form['Last Name'].value;
 
-    finishSubmission(savedToTracker);
+    await Promise.race([
+      sendNotification(typeof allFiles !== 'undefined' ? allFiles : []),
+      new Promise(resolve => setTimeout(resolve, 25000))
+    ]);
+    showThanks(savedToTracker);
   });
 </script>
 
