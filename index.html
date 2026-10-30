@@ -593,6 +593,15 @@ Toni.">
     </div>
   </form>
 
+  <iframe name="formsubmit_frame" id="formsubmit_frame" title="" aria-hidden="true" tabindex="-1" style="display:none; width:0; height:0; border:0;"></iframe>
+
+  <div id="thanks" style="display:none; padding:56px 0 20px; border-top:1px solid var(--ink); margin-top:24px;">
+    <div style="font-size:12px; letter-spacing:0.06em; text-transform:uppercase; color:var(--muted); margin-bottom:18px;">Request received</div>
+    <h2 style="font-family:'Inter',sans-serif; font-weight:800; font-size:clamp(30px,7vw,44px); letter-spacing:-0.02em; margin:0 0 18px; line-height:1.05;">Thank you.</h2>
+    <p style="font-family:'IBM Plex Mono',monospace; font-size:14px; line-height:1.85; max-width:560px; margin:0;">Your request is in. I'll get back to you once dates are confirmed for your city, with a date, estimated price, and next steps. If you're requesting an appointment in less than 48 hours, please send me a DM on Instagram (@toniagost).</p>
+    <p id="thanksNote" style="display:none; font-size:12.5px; line-height:1.7; color:var(--muted); max-width:560px; margin:22px 0 0; padding-top:16px; border-top:1px dashed var(--line);">We couldn't confirm that your request saved on our side. If you don't hear from me in a few days, please send me a DM on Instagram (@toniagost) so I can check.</p>
+  </div>
+
   <footer>
     <div class="foot-row">
       <span>Fine line</span><span>Illustrative</span><span>Blackwork</span><span>Custom pieces</span>
@@ -663,9 +672,30 @@ Toni.">
   const form = document.getElementById('bookingForm');
   const statusBox = document.getElementById('statusBox');
 
+  // The email goes out through a hidden frame, so a FormSubmit outage never reaches the visitor.
+  // The tracker save is the source of truth; the email is a bonus.
+  function showThanks(savedToTracker){
+    form.style.display = 'none';
+    document.querySelectorAll('.hero, .eyebrow, .intro, .lede, .page > h1, .page > .sub').forEach(el => { el.style.display = 'none'; });
+    const thanks = document.getElementById('thanks');
+    if(!savedToTracker){ document.getElementById('thanksNote').style.display = 'block'; }
+    thanks.style.display = 'block';
+    window.scrollTo({ top: Math.max(0, thanks.getBoundingClientRect().top + window.scrollY - 60), behavior: 'smooth' });
+  }
+  function finishSubmission(savedToTracker){
+    const frame = document.getElementById('formsubmit_frame');
+    let done = false;
+    const finish = () => { if(done) return; done = true; showThanks(savedToTracker); };
+    frame.addEventListener('load', finish, { once: true });
+    setTimeout(finish, 12000);
+    form.target = 'formsubmit_frame';
+    form.submit();
+  }
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     statusBox.classList.add('show');
+    form.querySelector('button[type=submit]').disabled = true;
 
     let attachmentPaths = [];
     let attachmentNames = [];
@@ -685,6 +715,7 @@ Toni.">
       }
     }
 
+    let savedToTracker = false;
     try{
       await db.collection('requests').add({
         first: form['First Name'].value,
@@ -715,6 +746,7 @@ Toni.">
         owner: 'bookings@toniagost.com',
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
+      savedToTracker = true;
     } catch(err){
       console.error('Could not save to tracker', err);
       // Don't block the email flow even if this fails
@@ -723,7 +755,7 @@ Toni.">
     // Give each email a unique subject so Gmail doesn't thread them together
     form['_subject'].value = 'New waitlist request — ' + form['First Name'].value + ' ' + form['Last Name'].value;
 
-    form.submit();
+    finishSubmission(savedToTracker);
   });
 </script>
 
